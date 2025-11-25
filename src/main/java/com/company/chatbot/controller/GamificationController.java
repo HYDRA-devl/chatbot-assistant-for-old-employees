@@ -1,0 +1,63 @@
+package com.company.chatbot.controller;
+
+import com.company.chatbot.entity.Achievement;
+import com.company.chatbot.entity.User;
+import com.company.chatbot.entity.UserAchievement;
+import com.company.chatbot.repository.AchievementRepository;
+import com.company.chatbot.repository.UserRepository;
+import com.company.chatbot.service.GamificationService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/gamification")
+@RequiredArgsConstructor
+public class GamificationController {
+
+    private final GamificationService gamificationService;
+    private final UserRepository userRepository;
+    private final AchievementRepository achievementRepository;
+
+    @GetMapping("/users/{userId}/achievements")
+    public ResponseEntity<List<UserAchievement>> getUserAchievements(@PathVariable Long userId) {
+        List<UserAchievement> achievements = gamificationService.getUserAchievements(userId);
+        return ResponseEntity.ok(achievements);
+    }
+
+    @GetMapping("/users/{userId}/achievements/completed")
+    public ResponseEntity<List<UserAchievement>> getCompletedAchievements(@PathVariable Long userId) {
+        List<UserAchievement> achievements = gamificationService.getCompletedAchievements(userId);
+        return ResponseEntity.ok(achievements);
+    }
+
+    @GetMapping("/users/{userId}/stats")
+    public ResponseEntity<User> getUserStats(@PathVariable Long userId) {
+        return userRepository.findById(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/achievements")
+    public ResponseEntity<List<Achievement>> getAllAchievements() {
+        return ResponseEntity.ok(achievementRepository.findAll());
+    }
+
+    @PostMapping("/achievements")
+    public ResponseEntity<Achievement> createAchievement(@RequestBody Achievement achievement) {
+        Achievement saved = achievementRepository.save(achievement);
+        return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<User>> getLeaderboard() {
+        // Get top 10 users by points
+        List<User> topUsers = userRepository.findAll().stream()
+                .sorted((u1, u2) -> u2.getTotalPoints().compareTo(u1.getTotalPoints()))
+                .limit(10)
+                .toList();
+        return ResponseEntity.ok(topUsers);
+    }
+}
