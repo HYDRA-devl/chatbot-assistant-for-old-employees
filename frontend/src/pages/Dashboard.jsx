@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { gamificationAPI, chatAPI } from '../services/api';
+import { gamificationAPI, chatAPI, gmailAPI } from '../services/api';
 
 const Dashboard = ({ user, onLogout }) => {
   const [stats, setStats] = useState(null);
   const [recentChats, setRecentChats] = useState([]);
   const [achievements, setAchievements] = useState([]);
+  const [gmailEmails, setGmailEmails] = useState([]);
+  const [gmailLoading, setGmailLoading] = useState(false);
+  const [gmailError, setGmailError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -25,6 +28,30 @@ const Dashboard = ({ user, onLogout }) => {
       setAchievements(achievementsRes.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const handleConnectGmail = async () => {
+    setGmailError(null);
+    try {
+      await gmailAPI.connect();
+    } catch (error) {
+      console.error('Error connecting Gmail:', error);
+      setGmailError('Gmail connection failed.');
+    }
+  };
+
+  const handleFetchEmails = async () => {
+    setGmailLoading(true);
+    setGmailError(null);
+    try {
+      const response = await gmailAPI.fetchEmails(user.id, 10);
+      setGmailEmails(response.data);
+    } catch (error) {
+      console.error('Error fetching Gmail emails:', error);
+      setGmailError('Failed to fetch emails.');
+    } finally {
+      setGmailLoading(false);
     }
   };
 
@@ -154,6 +181,45 @@ const Dashboard = ({ user, onLogout }) => {
               Track your progress and unlock new milestones
             </p>
           </Link>
+        </div>
+
+        {/* Gmail Inbox */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Gmail Inbox</h2>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleConnectGmail}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Connect Gmail
+              </button>
+              <button
+                onClick={handleFetchEmails}
+                disabled={gmailLoading}
+                className="px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
+              >
+                {gmailLoading ? 'Loading...' : 'Fetch Emails'}
+              </button>
+            </div>
+          </div>
+
+          {gmailError && (
+            <p className="text-sm text-red-600 mb-3">{gmailError}</p>
+          )}
+
+          {gmailEmails.length === 0 ? (
+            <p className="text-sm text-gray-600">No emails fetched yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {gmailEmails.map((email) => (
+                <div key={email.id} className="border border-gray-200 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-gray-900">{email.subject}</p>
+                  <p className="text-xs text-gray-600">From: {email.sender}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Recent Activity */}

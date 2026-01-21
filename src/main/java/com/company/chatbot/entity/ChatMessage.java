@@ -25,6 +25,14 @@ public class ChatMessage {
     @JsonBackReference("user-messages")
     private User user;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id")
+    @JsonIgnoreProperties({"user", "messages"})
+    private Conversation conversation;
+    
+    @Column(name = "conversation_id", insertable = false, updatable = false)
+    private Long conversationId;  // For JSON serialization
+    
     @Column(nullable = false, columnDefinition = "TEXT")
     private String userMessage;
     

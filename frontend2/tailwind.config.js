@@ -8,31 +8,28 @@ export default {
     extend: {
       colors: {
         accent: {
-          DEFAULT: '#3b82f6', // blue-500
-          600: '#2563eb' // blue-600
-        }
+          DEFAULT: '#0b5aa6',
+          600: '#084c8a'
+        },
+        ink: '#1f2a37',
+        sand: '#f5f2ed',
+        mist: '#faf8f4',
+        border: '#d8d2c6'
       },
       boxShadow: {
-        subtle: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)'
+        subtle: '0 1px 2px rgba(17, 24, 39, 0.08), 0 4px 12px rgba(17, 24, 39, 0.06)'
       },
       fontFamily: {
         sans: [
-          'Inter',
-          'ui-sans-serif',
-          'system-ui',
-          '-apple-system',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
-          'Noto Sans',
-          'Apple Color Emoji',
-          'Segoe UI Emoji',
-          'Segoe UI Symbol'
+          '"Source Sans 3"',
+          'sans-serif'
+        ],
+        serif: [
+          '"Source Serif 4"',
+          'serif'
         ]
       }
     }
   },
   plugins: []
 };
-

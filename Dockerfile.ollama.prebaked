@@ -1,0 +1,23 @@
+# Multi-stage Dockerfile that pre-downloads the model
+# WARNING: This creates a LARGE image (~4-5GB)
+
+# Stage 1: Download model
+FROM ollama/ollama:latest as builder
+
+# Start Ollama in background and download model
+RUN ollama serve & \
+    sleep 10 && \
+    ollama pull phi3:mini && \
+    pkill ollama
+
+# Stage 2: Final image with model included
+FROM ollama/ollama:latest
+
+EXPOSE 11434
+ENV OLLAMA_HOST=0.0.0.0:11434
+
+# Copy the downloaded model from builder stage
+COPY --from=builder /root/.ollama /root/.ollama
+
+# Simple startup - model already exists!
+CMD ["ollama", "serve"]

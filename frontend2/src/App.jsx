@@ -7,6 +7,9 @@ import ChatPage from './pages/ChatPage.jsx';
 import Profile from './pages/Profile.jsx';
 import Achievements from './pages/Achievements.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
+import QuizPage from './pages/QuizPage.jsx';
+import TasksMeetings from './pages/TasksMeetings.jsx';
+import GmailInbox from './pages/GmailInbox.jsx';
 
 function useAuth() {
   const [user, setUser] = React.useState(() => {
@@ -60,9 +63,12 @@ export default function App() {
       >
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="chat" element={<ChatPage />} />
+        <Route path="quiz/:quizId" element={<QuizPage />} />
         <Route path="profile" element={<Profile />} />
         <Route path="achievements" element={<Achievements />} />
         <Route path="leaderboard" element={<Leaderboard />} />
+        <Route path="tasks" element={<TasksMeetings />} />
+        <Route path="gmail" element={<GmailInbox />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

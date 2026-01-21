@@ -37,4 +37,10 @@ export const gamificationAPI = {
   getLeaderboard: () => api.get('/gamification/leaderboard'),
 };
 
+// Gmail APIs
+export const gmailAPI = {
+  connect: () => api.get('/gmail/connect'),
+  fetchEmails: (userId, limit = 10) => api.get(`/gmail/emails?userId=${userId}&limit=${limit}`),
+};
+
 export default api;

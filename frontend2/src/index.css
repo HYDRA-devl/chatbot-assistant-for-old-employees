@@ -2,17 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global base styles for a professional, minimal UI */
+/* Global base styles for high readability */
 :root {
-  --bg: 248 250 252; /* slate-50 */
-  --fg: 17 24 39;    /* gray-900 */
-  --muted: 100 116 139; /* slate-500 */
+  --bg: 245 242 237;
+  --surface: 255 255 255;
+  --ink: 31 42 55;
+  --muted: 79 94 108;
+  --accent: 11 90 166;
+}
+
+html {
+  font-size: 18px;
 }
 
 html, body, #root { height: 100%; }
 
 body {
-  @apply antialiased bg-gray-50 text-gray-900;
+  @apply antialiased bg-sand text-ink font-sans leading-relaxed;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 16px;
+  z-index: 50;
+  padding: 8px 12px;
+  background: #0b5aa6;
+  color: #fff;
+  border-radius: 6px;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 16px;
 }
 
 .container-pro {
@@ -20,34 +42,37 @@ body {
 }
 
 .card {
-  @apply bg-white border border-gray-200 rounded-lg shadow-subtle;
+  @apply bg-white border border-border rounded-xl shadow-subtle;
 }
 
 .card-header {
-  @apply px-5 py-4 border-b border-gray-200 font-medium text-gray-900;
+  @apply px-6 py-4 border-b border-border font-semibold text-ink text-lg;
 }
 
 .card-body {
-  @apply px-5 py-4 text-gray-700;
+  @apply px-6 py-5 text-ink;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-md bg-accent px-4 py-2 text-white hover:bg-accent-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent;
+  @apply inline-flex items-center justify-center rounded-lg bg-accent px-5 py-3 text-base font-semibold text-white hover:bg-accent-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-border bg-white px-5 py-3 text-base font-semibold text-ink hover:bg-mist transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent;
 }
 
 .input {
-  @apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-accent focus:ring-accent;
+  @apply block w-full rounded-lg border border-border bg-white px-4 py-3 text-base text-ink placeholder-gray-500 shadow-sm focus:border-accent focus:ring-accent;
 }
 
 .label {
-  @apply block text-sm font-medium text-gray-700 mb-1;
+  @apply block text-base font-semibold text-ink mb-2;
 }
 
 .nav-link {
-  @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors;
+  @apply flex items-center gap-3 rounded-lg px-4 py-3 text-base font-semibold text-ink hover:bg-mist transition-colors;
 }
 
 .nav-link-active {
-  @apply bg-gray-200 text-gray-900 font-medium;
+  @apply bg-mist border border-border text-ink;
 }
-

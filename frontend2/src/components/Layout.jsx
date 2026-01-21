@@ -1,36 +1,110 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 export default function Layout({ user, onLogout }) {
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/chat')) {
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname]);
+
   return (
-    <div className="h-screen w-full grid grid-cols-[260px_1fr]">
-      <aside className="relative border-r border-gray-200 bg-white">
-        <div className="px-4 py-5 border-b border-gray-200">
-          <div className="text-base font-semibold text-gray-900">Learning Platform</div>
-          <div className="text-sm text-gray-500">Enterprise Dashboard</div>
+    <div className="min-h-screen bg-sand text-ink flex flex-col">
+      <header className="bg-white border-b border-border px-6 py-4 flex items-center">
+        <div className="flex-1 flex items-center">
+          <button
+            className="btn-secondary"
+            onClick={() => setIsSidebarOpen((prev) => !prev)}
+            aria-expanded={isSidebarOpen}
+            aria-controls="primary-navigation"
+          >
+            {isSidebarOpen ? 'Hide menu' : 'Show menu'}
+          </button>
         </div>
-        <nav className="p-3 space-y-1">
-          <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}>Dashboard</NavLink>
-          <NavLink to="/chat" className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}>Chat</NavLink>
-          <NavLink to="/achievements" className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}>Achievements</NavLink>
-          <NavLink to="/leaderboard" className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}>Leaderboard</NavLink>
-          <NavLink to="/profile" className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}>Profile</NavLink>
-        </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="text-sm text-gray-600 mb-2">{user?.fullName || user?.username}</div>
-          <button className="w-full btn-primary" onClick={onLogout}>Logout</button>
-        </div>
-      </aside>
-      <main className="overflow-y-auto bg-gray-50">
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
-          <div className="container-pro py-4">
-            <h1 className="text-xl font-semibold text-gray-900">Employee Learning Platform</h1>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-accent text-white flex items-center justify-center font-semibold">
+              EL
+            </div>
+            <div className="text-center">
+              <h1 className="text-2xl font-semibold text-ink">Employee Learning Platform</h1>
+              <p className="text-base text-gray-600">Simple tools for learning, email, and tasks</p>
+            </div>
           </div>
-        </header>
-        <div className="container-pro py-6">
-          <Outlet />
         </div>
-      </main>
+
+        <div className="flex-1 flex items-center justify-end gap-3">
+          <div className="text-right">
+            <div className="text-base font-semibold text-ink">{user?.fullName || user?.username}</div>
+            <div className="text-sm text-gray-600">Signed in</div>
+          </div>
+          <NavLink to="/profile" className="btn-secondary">Profile</NavLink>
+          <button className="btn-secondary" onClick={onLogout}>Log out</button>
+        </div>
+      </header>
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {isSidebarOpen ? (
+          <aside className="w-72 bg-white border-r border-border p-4 flex flex-col gap-4 flex-none overflow-hidden">
+            <nav id="primary-navigation" aria-label="Primary" className="space-y-2">
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                Dashboard
+              </NavLink>
+              <NavLink
+                to="/chat"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                AI Chat
+              </NavLink>
+              <NavLink
+                to="/gmail"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                Email (Gmail)
+              </NavLink>
+              <NavLink
+                to="/tasks"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                Tasks and Meetings
+              </NavLink>
+              <NavLink
+                to="/achievements"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                Learning Progress
+              </NavLink>
+              <NavLink
+                to="/leaderboard"
+                className={({ isActive }) => `${isActive ? 'nav-link nav-link-active' : 'nav-link'}`}
+              >
+                Leaderboard
+              </NavLink>
+            </nav>
+
+            <div className="mt-2 p-4 border border-border rounded-xl bg-mist">
+              <h2 className="text-lg font-semibold text-ink">Need help now?</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Open the AI chat for step-by-step guidance.
+              </p>
+              <NavLink to="/chat" className="btn-primary w-full mt-3">
+                Open AI Chat
+              </NavLink>
+            </div>
+          </aside>
+        ) : null}
+
+        <main id="main-content" className="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

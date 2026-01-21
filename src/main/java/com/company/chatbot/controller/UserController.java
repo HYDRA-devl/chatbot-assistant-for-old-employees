@@ -41,6 +41,8 @@ public class UserController {
         user.setTotalPoints(0);
         user.setLevel(1);
         user.setMessagesSent(0);
+        user.setTasksCompleted(0);
+        user.setMeetingsCompleted(0);
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(savedUser);
     }

@@ -9,8 +9,8 @@ import com.company.chatbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,91 +18,88 @@ import java.util.List;
 @Slf4j
 public class GamificationService {
 
+    private static final int POINTS_PER_MESSAGE = 10;
+    private static final int POINTS_PER_LEVEL = 100;
+    private static final int POINTS_PER_TASK = 5;
+    private static final int POINTS_PER_MEETING = 15;
+
     private final UserRepository userRepository;
     private final AchievementRepository achievementRepository;
     private final UserAchievementRepository userAchievementRepository;
 
-    private static final int POINTS_PER_MESSAGE = 10;
-    private static final int POINTS_PER_LEVEL = 100;
-
-    @Transactional
-    public int awardPointsForMessage(User user) {
-        int currentPoints = user.getTotalPoints();
-        int newPoints = currentPoints + POINTS_PER_MESSAGE;
-        
-        user.setTotalPoints(newPoints);
-        
-        // Check for level up
-        int currentLevel = user.getLevel();
-        int newLevel = calculateLevel(newPoints);
-        
-        if (newLevel > currentLevel) {
-            user.setLevel(newLevel);
-            log.info("User {} leveled up to level {}", user.getUsername(), newLevel);
-        }
-        
-        userRepository.save(user);
-        return POINTS_PER_MESSAGE;
-    }
-
-    private int calculateLevel(int totalPoints) {
-        return (totalPoints / POINTS_PER_LEVEL) + 1;
-    }
-
-    @Transactional
-    public void checkAndAwardAchievements(User user) {
-        List<Achievement> allAchievements = achievementRepository.findAll();
-        
-        for (Achievement achievement : allAchievements) {
-            UserAchievement userAchievement = userAchievementRepository
-                    .findByUserAndAchievement(user, achievement)
-                    .orElseGet(() -> {
-                        UserAchievement newUA = new UserAchievement();
-                        newUA.setUser(user);
-                        newUA.setAchievement(achievement);
-                        newUA.setProgress(0);
-                        newUA.setCompleted(false);
-                        return newUA;
-                    });
-
-            if (!userAchievement.getCompleted()) {
-                int currentProgress = calculateProgress(user, achievement);
-                userAchievement.setProgress(currentProgress);
-                
-                if (currentProgress >= achievement.getTargetValue()) {
-                    userAchievement.setCompleted(true);
-                    
-                    // Award achievement points
-                    user.setTotalPoints(user.getTotalPoints() + achievement.getPointsReward());
-                    userRepository.save(user);
-                    
-                    log.info("User {} earned achievement: {}", user.getUsername(), achievement.getName());
-                }
-                
-                userAchievementRepository.save(userAchievement);
-            }
-        }
-    }
-
-    private int calculateProgress(User user, Achievement achievement) {
-        return switch (achievement.getType()) {
-            case MESSAGES_SENT -> user.getMessagesSent();
-            case POINTS_EARNED -> user.getTotalPoints();
-            case LEVEL_REACHED -> user.getLevel();
-            case CONSECUTIVE_DAYS -> 0; // TODO: Implement login streak tracking
-            case TOPICS_EXPLORED -> 0; // TODO: Implement topic tracking
-        };
-    }
-
     public List<UserAchievement> getUserAchievements(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
         return userAchievementRepository.findByUser(user);
     }
 
     public List<UserAchievement> getCompletedAchievements(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found"));
         return userAchievementRepository.findByUserAndCompleted(user, true);
+    }
+
+    public int awardPointsForMessage(User user) {
+        int currentPoints = user.getTotalPoints();
+        int newPoints = currentPoints + POINTS_PER_MESSAGE;
+        user.setTotalPoints(newPoints);
+
+        int newLevel = calculateLevel(newPoints);
+        user.setLevel(newLevel);
+
+        userRepository.save(user);
+
+        return POINTS_PER_MESSAGE;
+    }
+
+    public int awardPointsForActivity(User user, int completedTasks, int completedMeetings) {
+        int pointsEarned = (completedTasks * POINTS_PER_TASK) + (completedMeetings * POINTS_PER_MEETING);
+        if (pointsEarned <= 0) {
+            return 0;
+        }
+
+        int newPoints = user.getTotalPoints() + pointsEarned;
+        user.setTotalPoints(newPoints);
+        user.setLevel(calculateLevel(newPoints));
+        userRepository.save(user);
+        return pointsEarned;
+    }
+
+    public void checkAndAwardAchievements(User user) {
+        List<Achievement> allAchievements = achievementRepository.findAll();
+
+        for (Achievement achievement : allAchievements) {
+            if (userAchievementRepository.existsByUserAndAchievement(user, achievement)) {
+                continue;
+            }
+
+            if (hasAchieved(user, achievement)) {
+                UserAchievement userAchievement = new UserAchievement();
+                userAchievement.setUser(user);
+                userAchievement.setAchievement(achievement);
+                userAchievement.setCompleted(true);
+                userAchievement.setEarnedAt(LocalDateTime.now());
+
+                userAchievementRepository.save(userAchievement);
+
+                user.setTotalPoints(user.getTotalPoints() + achievement.getPointsReward());
+                userRepository.save(user);
+            }
+        }
+    }
+
+    private boolean hasAchieved(User user, Achievement achievement) {
+        switch (achievement.getType()) {
+            case POINTS_EARNED -> {
+                return user.getTotalPoints() >= achievement.getTargetValue();
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+
+    private int calculateLevel(int totalPoints) {
+        return (totalPoints / POINTS_PER_LEVEL) + 1;
     }
 }

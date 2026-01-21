@@ -54,35 +54,99 @@ const ChatPage = ({ user, onLogout }) => {
     setInputMessage('');
     setLoading(true);
 
+    // Add user message immediately
     setMessages(prev => [...prev, { 
       type: 'user', 
       content: userMessage, 
       timestamp: new Date().toISOString() 
     }]);
 
+    // Add empty bot message that will be filled with streaming tokens
+    const botMessageIndex = messages.length + 1;
+    setMessages(prev => [...prev, {
+      type: 'bot',
+      content: '',
+      timestamp: new Date().toISOString(),
+      streaming: true
+    }]);
+
     try {
-      const response = await chatAPI.sendMessage({
-        userId: user.id,
-        message: userMessage
+      // Create EventSource for streaming
+      const eventSource = new EventSource(
+        `http://localhost:8081/api/chat/stream?userId=${user.id}&message=${encodeURIComponent(userMessage)}`
+      );
+
+      // Handle incoming tokens
+      eventSource.addEventListener('token', (event) => {
+        const token = event.data;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          // Update the last bot message (streaming one)
+          if (newMessages[botMessageIndex]) {
+            newMessages[botMessageIndex] = {
+              ...newMessages[botMessageIndex],
+              content: newMessages[botMessageIndex].content + token
+            };
+          }
+          return newMessages;
+        });
       });
 
-      setMessages(prev => [...prev, {
-        type: 'bot',
-        content: response.data.response,
-        timestamp: new Date().toISOString(),
-        points: response.data.pointsEarned
-      }]);
+      // Handle completion
+      eventSource.addEventListener('complete', (event) => {
+        const data = JSON.parse(event.data);
+        
+        // Update message with points
+        setMessages(prev => {
+          const newMessages = [...prev];
+          if (newMessages[botMessageIndex]) {
+            newMessages[botMessageIndex] = {
+              ...newMessages[botMessageIndex],
+              points: data.pointsEarned,
+              streaming: false
+            };
+          }
+          return newMessages;
+        });
 
-      const updatedUser = { ...user, totalPoints: user.totalPoints + response.data.pointsEarned };
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        // Update user points
+        const updatedUser = { ...user, totalPoints: user.totalPoints + data.pointsEarned };
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+        eventSource.close();
+        setLoading(false);
+      });
+
+      // Handle errors
+      eventSource.addEventListener('error', (event) => {
+        console.error('EventSource error:', event);
+        
+        setMessages(prev => {
+          const newMessages = [...prev];
+          if (newMessages[botMessageIndex]) {
+            newMessages[botMessageIndex] = {
+              ...newMessages[botMessageIndex],
+              content: newMessages[botMessageIndex].content || 'Sorry, I encountered an error. Please try again.',
+              streaming: false
+            };
+          }
+          return newMessages;
+        });
+
+        eventSource.close();
+        setLoading(false);
+      });
+
     } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => [...prev, {
-        type: 'bot',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString()
-      }]);
-    } finally {
+      console.error('Error setting up stream:', error);
+      setMessages(prev => [
+        ...prev.slice(0, -1), // Remove the empty bot message
+        {
+          type: 'bot',
+          content: 'Sorry, I encountered an error. Please try again.',
+          timestamp: new Date().toISOString()
+        }
+      ]);
       setLoading(false);
     }
   };
@@ -166,6 +230,9 @@ const ChatPage = ({ user, onLogout }) => {
                           message.type === 'user' ? 'text-white' : 'text-gray-800'
                         }`}>
                           {message.content}
+                          {message.streaming && (
+                            <span className="inline-block w-2 h-4 ml-1 bg-blue-600 animate-pulse"></span>
+                          )}
                         </p>
                         {message.points && (
                           <div className="mt-2 pt-2 border-t border-green-100 flex items-center space-x-1 text-green-600">
