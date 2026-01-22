@@ -2,6 +2,7 @@ package com.company.chatbot.controller;
 
 import com.company.chatbot.entity.EmailEntity;
 import com.company.chatbot.service.GmailService;
+import com.company.chatbot.service.GmailService.EmailSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,5 +31,13 @@ public class GmailController {
         @RequestParam(defaultValue = "10") int limit
     ) {
         return ResponseEntity.ok(gmailService.fetchRecentEmails(userId, limit));
+    }
+
+    @GetMapping("/emails/{emailId}/summary")
+    public ResponseEntity<EmailSummary> getEmailSummary(
+        @RequestParam Long userId,
+        @org.springframework.web.bind.annotation.PathVariable Long emailId
+    ) {
+        return ResponseEntity.ok(gmailService.summarizeEmail(userId, emailId));
     }
 }

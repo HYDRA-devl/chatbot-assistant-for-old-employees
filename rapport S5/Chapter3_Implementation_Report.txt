@@ -1,0 +1,99 @@
+Chapter 3 - The Implementation Phase
+
+3.1 Introduction
+This chapter presents the technical implementation of the Employee Learning Chatbot. The system is built as a full stack application with a Spring Boot backend and a React frontend. The backend exposes REST APIs for chat, gamification, quizzes, skills mapping, and Google workspace integration. The frontend consumes these APIs to provide a guided learning experience, including real time chat streaming and progress tracking. The architecture follows a layered structure: controllers for HTTP endpoints, services for business logic, repositories for data access, and entities for persistence.
+
+3.2 Technical study
+This section summarizes the technical stack and the main implementation choices made in the project.
+
+3.2.1 Development tools
+- Java 17 and Spring Boot 3.3.5 for the backend application and dependency management with Maven.
+- Spring Data JPA and Hibernate for ORM and database access.
+- WebClient (Spring WebFlux) to call external AI services and enable streaming responses.
+- PostgreSQL configured as the main database (with H2 supported by dependencies for in memory testing).
+- Google APIs (Gmail, Tasks, Calendar) with OAuth for secure access to user data.
+- Ollama for local LLM inference, plus Gemini as an optional cloud LLM provider selected through configuration.
+- Vite for fast React development builds, with Tailwind CSS for styling.
+- Axios and React Router for API calls and client side navigation.
+- Docker for running the local Ollama model and supporting environment setup.
+
+3.2.2 Development languages
+- Java for backend logic, REST controllers, services, and data models.
+- SQL through JPA for persistence and relational queries.
+- JavaScript and JSX for the React frontend.
+- HTML and CSS (Tailwind utility classes) for layout and UI presentation.
+- JSON for REST payloads, LLM prompts, and API responses.
+
+3.2 Technical implementation details
+Backend architecture
+- Controllers expose REST APIs for chat, conversations, users, quizzes, gamification, skills, Gmail, Google Tasks, and Google Calendar.
+- Services implement the core business logic: chat generation, conversation lifecycle, quiz creation, gamification rules, skill mapping, and activity synchronization.
+- Repositories use Spring Data JPA to persist users, messages, conversations, achievements, quizzes, and activity tracking.
+- Entities model the domain: User, ChatMessage, Conversation, Achievement, UserAchievement, Quiz, QuizQuestion, QuizAttempt, EmailEntity, CompletedTask, and CompletedMeeting.
+
+Chat and conversation flow
+- Chat endpoints support both standard responses and server sent events (SSE) for streaming tokens to the UI.
+- Each message is saved with response time and points earned. User statistics are updated after each interaction.
+- Conversations can be created, ended, archived, or deleted. When ended, a topic and title are generated using the LLM.
+- A conversation context is built from recent messages to keep prompts concise.
+
+Gamification and progress
+- Each user message adds points and can trigger level changes and achievement checks.
+- Achievements are seeded at application startup and stored in the database.
+- Activity sync combines completed Google Tasks and Calendar meetings to award extra points.
+- A leaderboard endpoint returns users sorted by total points.
+
+Quiz generation
+- When a conversation is completed, the system generates a quiz with multiple choice questions.
+- The LLM is prompted to return JSON so questions can be parsed and persisted.
+- Quiz attempts are scored and award points based on correct answers.
+
+Skill mapping
+- A hybrid skill map combines a predefined catalog with either rule based matching or LLM analysis of recent chats.
+- The service caches LLM generated results and falls back to rule based mapping if needed.
+
+Google workspace integration
+- OAuth is handled by a local receiver to obtain tokens stored under the tokens directory.
+- Gmail messages are fetched, cleaned, and summarized with the LLM.
+- Google Tasks and Calendar events are fetched and can be marked completed to update gamification stats.
+
+Configuration and runtime
+- The backend runs on port 8081 and connects to PostgreSQL on localhost.
+- The LLM provider is selectable (ollama or gemini) through configuration.
+- Ollama requests are sent to the local service on port 11434.
+
+3.3 Presentation of interfaces
+The frontend delivers a modern learning dashboard organized around a central navigation layout. Key screens include:
+
+- Authentication (Login and Register)
+  Users can sign in or create an account, providing username, full name, department, and password. Successful authentication stores the user locally and redirects to the dashboard.
+
+- Dashboard
+  The dashboard summarizes learning progress, points, level, recent tasks, recent meetings, a skill map view, and a leaderboard snapshot. It also includes controls to sync tasks and meetings and refresh the skill map.
+
+- AI Chat
+  The chat page shows a conversation sidebar with search, recent groupings, and conversation management. The main area streams responses token by token, shows earned points, and allows ending a conversation to trigger quiz generation.
+
+- Quiz
+  The quiz interface displays multiple choice questions created from a conversation. Users submit answers, view scores, and review correct answers with explanations.
+
+- Achievements
+  Achievements are presented in a grid with progress indicators and completion status. This screen encourages continuous learning and rewards user milestones.
+
+- Leaderboard
+  The leaderboard ranks users by points, highlights the current user, and displays department and level metadata.
+
+- Tasks and Meetings
+  This page integrates Google Tasks and Calendar. Users can fetch lists, filter by task list or calendar, and mark items as completed for points.
+
+- Gmail Inbox
+  Users can connect Gmail, fetch recent emails, and request AI summaries with key action items extracted.
+
+- Profile
+  The profile page allows users to update their personal details and review statistics such as level, points, and daily streak.
+
+3.4 Conclusion
+The implementation phase delivered a complete learning assistant with a robust backend, a responsive frontend, and integrations with LLM services and Google workspace APIs. The system supports real time chat, gamified learning progress, AI generated quizzes, skill mapping, and email and task workflows. This foundation allows future extensions such as RAG indexing, enterprise authentication, and production deployment.
+
+General conclusion
+The Employee Learning Chatbot provides a practical, extensible platform that combines AI guidance with measurable learning progress. By unifying chat, quizzes, skills, and productivity integrations, the project achieves its goal of helping employees stay updated with technology trends while keeping their data and activity organized.

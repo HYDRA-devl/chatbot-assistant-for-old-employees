@@ -1,0 +1,70 @@
+ENTITIES AND RELATIONSHIPS (FOR CLASS DIAGRAM)
+
+Core User and Chat
+- User
+  - One User has many ChatMessage (User 1..* ChatMessage)
+  - One User has many UserAchievement (User 1..* UserAchievement)
+  - One User has many Conversation (Conversation has user_id; User side is not explicitly mapped as collection)
+  - One User has many Quiz (Quiz has user_id; User side is not explicitly mapped as collection)
+  - One User has many QuizAttempt (QuizAttempt has user_id; User side is not explicitly mapped as collection)
+  - One User has many EmailEntity (EmailEntity has user_id; User side is not explicitly mapped as collection)
+  - One User has many TaskEntity (TaskEntity has user_id; User side is not explicitly mapped as collection)
+  - One User has many MeetingEntity (MeetingEntity has user_id; User side is not explicitly mapped as collection)
+  - One User has many ExtractionJob (ExtractionJob has user_id; User side is not explicitly mapped as collection)
+  - One User has many CompletedTask (CompletedTask has user_id; User side is not explicitly mapped as collection)
+  - One User has many CompletedMeeting (CompletedMeeting has user_id; User side is not explicitly mapped as collection)
+- ChatMessage
+  - Many ChatMessage belong to one User (ChatMessage.user_id)
+  - Many ChatMessage belong to one Conversation (ChatMessage.conversation_id, optional)
+- Conversation
+  - Many Conversation belong to one User (Conversation.user_id)
+
+Gamification
+- Achievement
+  - One Achievement has many UserAchievement (Achievement 1..* UserAchievement)
+- UserAchievement
+  - Many UserAchievement belong to one User (UserAchievement.user_id)
+  - Many UserAchievement belong to one Achievement (UserAchievement.achievement_id)
+  - This is the join entity between User and Achievement (User *..* Achievement via UserAchievement)
+
+Quizzes
+- Quiz
+  - Many Quiz belong to one User (Quiz.user_id)
+  - Many Quiz belong to one Conversation (Quiz.conversation_id, optional)
+  - One Quiz has many QuizQuestion (QuizQuestion.quiz_id)
+- QuizQuestion
+  - Many QuizQuestion belong to one Quiz (QuizQuestion.quiz_id)
+- QuizAttempt
+  - Many QuizAttempt belong to one Quiz (QuizAttempt.quiz_id)
+  - Many QuizAttempt belong to one User (QuizAttempt.user_id)
+
+Email and Extraction
+- EmailEntity
+  - Many EmailEntity belong to one User (EmailEntity.user_id)
+- ExtractionJob
+  - Many ExtractionJob belong to one User (ExtractionJob.user_id)
+
+Extracted Tasks and Meetings
+- TaskEntity
+  - Many TaskEntity belong to one User (TaskEntity.user_id)
+  - Note: TaskEntity has sourceEmailId string to link back to EmailEntity by ID, but no FK relation.
+- MeetingEntity
+  - Many MeetingEntity belong to one User (MeetingEntity.user_id)
+  - Note: MeetingEntity has sourceEmailId string to link back to EmailEntity by ID, but no FK relation.
+
+Activity Completion Records
+- CompletedTask
+  - Many CompletedTask belong to one User (CompletedTask.user_id)
+  - Unique constraint on (user_id, task_id)
+- CompletedMeeting
+  - Many CompletedMeeting belong to one User (CompletedMeeting.user_id)
+  - Unique constraint on (user_id, event_id)
+
+Enums
+- ConversationStatus is an enum used by Conversation.status
+
+NOTES
+- Several relations exist only on the child side (User does not declare collections for quizzes, attempts, emails, tasks, meetings, jobs, completed items), but they are still conceptual 1..* relationships in the database.
+- Conversation <-> ChatMessage is unidirectional from ChatMessage to Conversation (Conversation has no message collection).
+
+END OF FILE

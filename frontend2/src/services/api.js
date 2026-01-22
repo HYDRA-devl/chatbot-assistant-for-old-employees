@@ -37,7 +37,7 @@ export const quizAPI = {
   getQuiz: (quizId) => handle(api.get(`/quiz/${quizId}`)),
   getQuizQuestions: (quizId) => handle(api.get(`/quiz/${quizId}/questions`)),
   getQuizByConversation: (conversationId) => handle(api.get(`/quiz/conversation/${conversationId}`)),
-  submitQuiz: (quizId, responses) => handle(api.post(`/quiz/${quizId}/submit`, responses))
+  submitQuiz: (quizId, userId, answers) => handle(api.post(`/quiz/${quizId}/submit`, { userId, answers }))
 };
 
 export const userAPI = {
@@ -80,5 +80,6 @@ export const skillsAPI = {
 
 export const gmailAPI = {
   connect: () => handle(api.get('/gmail/connect')),
-  fetchEmails: (userId, limit = 10) => handle(api.get('/gmail/emails', { params: { userId, limit } }))
+  fetchEmails: (userId, limit = 10) => handle(api.get('/gmail/emails', { params: { userId, limit } })),
+  summarizeEmail: (userId, emailId) => handle(api.get(`/gmail/emails/${emailId}/summary`, { params: { userId } }))
 };

@@ -1,0 +1,33 @@
+Main Tools Used for Development
+
+Backend
+- Java 17
+- Spring Boot 3.3.5
+- Maven
+- Spring Data JPA (Hibernate)
+- Spring Web (REST)
+- Spring WebFlux (WebClient)
+- PostgreSQL
+- H2 Database (runtime dependency for in-memory)
+- Lombok
+
+AI and LLM
+- Ollama (local LLM runtime)
+- Gemini API (optional cloud LLM provider)
+
+Google Workspace Integration
+- Google API Client
+- Gmail API
+- Google Tasks API
+- Google Calendar API
+- OAuth (LocalServerReceiver)
+
+Frontend
+- React 18
+- Vite
+- Tailwind CSS
+- React Router
+- Axios
+
+DevOps / Environment
+- Docker (for Ollama container)

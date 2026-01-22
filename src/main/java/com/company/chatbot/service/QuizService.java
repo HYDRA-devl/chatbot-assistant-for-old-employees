@@ -24,7 +24,7 @@ public class QuizService {
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final GamificationService gamificationService;
-    private final OllamaService ollamaService;
+    private final LlmRouterService llmRouterService;
     private final ObjectMapper objectMapper;
 
     // Track conversations currently being processed to prevent duplicates
@@ -188,7 +188,7 @@ public class QuizService {
 
         try {
             String prompt = buildQuizPrompt(context, topicName);
-            String response = ollamaService.generateResponse(prompt, "", 500, false);
+            String response = llmRouterService.generateResponse(prompt, "", 4000, false);
             List<QuizQuestionData> parsed = parseQuizResponse(response);
             if (!parsed.isEmpty()) {
                 return parsed;
@@ -219,28 +219,45 @@ public class QuizService {
     }
 
     private List<QuizQuestionData> parseQuizResponse(String response) {
+        log.info("Raw Gemini Response: {}", response);
+
         String json = extractJson(response);
         if (json != null) {
             json = json.replace("\r", " ").replace("\n", " ").trim();
         }
         if (json == null || json.isBlank()) {
+            log.warn("Could not find valid JSON in Gemini response");
             return List.of();
         }
 
         try {
             JsonNode root = objectMapper.readTree(json);
-            JsonNode questionsNode = root.has("questions") ? root.get("questions") : root;
-            List<LlmQuizQuestion> llmQuestions = objectMapper.convertValue(questionsNode, new TypeReference<>() {});
+            JsonNode questionsNode;
+
+            if (root.isArray()) {
+                questionsNode = root;
+            } else if (root.has("questions")) {
+                questionsNode = root.get("questions");
+            } else {
+                questionsNode = objectMapper.createArrayNode().add(root);
+            }
+
+            List<LlmQuizQuestion> llmQuestions = objectMapper.convertValue(
+                questionsNode,
+                new TypeReference<List<LlmQuizQuestion>>() {}
+            );
 
             List<QuizQuestionData> results = new ArrayList<>();
             for (LlmQuizQuestion q : llmQuestions) {
-                if (q == null || q.question == null || q.optionA == null || q.optionB == null || q.optionC == null || q.optionD == null) {
+                if (q == null || q.question == null || q.correctAnswer == null) {
                     continue;
                 }
+
                 String answer = normalizeAnswer(q.correctAnswer);
                 if (answer == null) {
                     continue;
                 }
+
                 QuizQuestionData data = new QuizQuestionData();
                 data.question = q.question;
                 data.optionA = q.optionA;
@@ -254,7 +271,7 @@ public class QuizService {
 
             return results;
         } catch (Exception e) {
-            log.warn("Failed to parse quiz JSON", e);
+            log.warn("Failed to parse quiz JSON. Content was: {}", json, e);
             return List.of();
         }
     }
@@ -263,12 +280,29 @@ public class QuizService {
         if (response == null) {
             return null;
         }
-        int first = response.indexOf('{');
-        int last = response.lastIndexOf('}');
-        if (first < 0 || last <= first) {
+
+        int firstBrace = response.indexOf('{');
+        int firstBracket = response.indexOf('[');
+
+        int start = -1;
+        int end = -1;
+
+        if (firstBrace != -1 && (firstBracket == -1 || firstBrace < firstBracket)) {
+            start = firstBrace;
+            end = response.lastIndexOf('}');
+        } else if (firstBracket != -1) {
+            start = firstBracket;
+            end = response.lastIndexOf(']');
+        }
+
+        if (start < 0) {
             return null;
         }
-        return response.substring(first, last + 1);
+        if (end <= start) {
+            end = response.length() - 1;
+        }
+
+        return response.substring(start, end + 1);
     }
 
     private String normalizeAnswer(String answer) {

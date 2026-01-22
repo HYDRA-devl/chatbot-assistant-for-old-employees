@@ -31,7 +31,7 @@ public class SkillMappingService {
 
     private final UserRepository userRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final OllamaService ollamaService;
+    private final LlmRouterService llmRouterService;
     private final ObjectMapper objectMapper;
 
     private final Map<Long, SkillMapResponse> cache = new ConcurrentHashMap<>();
@@ -123,7 +123,7 @@ public class SkillMappingService {
 
         try {
             String prompt = buildPrompt(catalog, context);
-            String response = ollamaService.generateResponse(prompt, "", 800, false);
+            String response = llmRouterService.generateResponse(prompt, "", 800, false);
             String json = extractJson(response);
             if (json == null) {
                 return Optional.empty();

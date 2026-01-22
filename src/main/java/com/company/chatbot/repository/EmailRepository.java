@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface EmailRepository extends JpaRepository<EmailEntity, Long> {
     Optional<EmailEntity> findByUserAndGmailMessageId(User user, String gmailMessageId);
+    Optional<EmailEntity> findByIdAndUserId(Long id, Long userId);
     List<EmailEntity> findByUserOrderByReceivedAtDesc(User user);
 }

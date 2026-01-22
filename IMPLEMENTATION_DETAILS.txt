@@ -1,0 +1,115 @@
+IMPLEMENTATION DETAILS - EMPLOYEE LEARNING CHATBOT
+
+This file summarizes how each major feature is implemented in the backend and how the frontend consumes it.
+
+ARCHITECTURE OVERVIEW
+- Backend: Spring Boot 3.2, layered structure (controllers -> services -> repositories -> entities).
+- Frontend: React (see frontend2) consuming REST endpoints.
+- Persistence: JPA entities stored in H2 (in-memory by default) with repositories.
+- LLM integration: Ollama for chat and extraction; Gemini optional for summaries and quizzes via LlmRouterService.
+
+CHATBOT (CHAT + CONVERSATIONS)
+- Entry points:
+  - POST /api/chat/message for single-response chat.
+  - GET /api/chat/stream for token streaming over SSE.
+  - GET /api/chat/stream/conversation to stream with conversation context.
+  - GET /api/chat/history/{userId} and /recent for history.
+  - GET /api/chat/conversation/{conversationId}/messages for conversation messages.
+- Core flow (ChatService.processMessage):
+  1) Load User from UserRepository.
+  2) Build context (placeholder for RAG) with getContextForQuery.
+  3) Call OllamaService.generateResponse(prompt, context).
+  4) Award points via GamificationService.awardPointsForMessage.
+  5) Persist ChatMessage with response time and points earned.
+  6) Increment user messagesSent and save user.
+  7) Check achievements with GamificationService.checkAndAwardAchievements.
+- Streaming flow (ChatService.processStreamingMessage):
+  - Uses SseEmitter to emit token events. Each token is JSON-escaped.
+  - On completion, saves ChatMessage, awards points, updates user and achievements, then emits a complete event with points/messageId.
+- Conversation lifecycle (ConversationService):
+  - Creates or returns an active conversation per user.
+  - End conversation marks it COMPLETED, stores end time, extracts a topic using Ollama, and generates a title.
+  - Topics are extracted by prompting the LLM with conversation history.
+
+GAMIFICATION
+- Points and levels are handled by GamificationService:
+  - +10 points per chat message.
+  - +5 points per completed task, +15 per completed meeting.
+  - Level = (totalPoints / 100) + 1.
+- Achievements:
+  - Seeded in DataInitializer (First Steps, Conversationalist, Expert Learner, Point Master, Rising Star, Tech Guru).
+  - checkAndAwardAchievements loads all achievements and awards those not yet earned.
+  - Current implementation only checks AchievementType.POINTS_EARNED (other types are seeded but not evaluated yet).
+- Leaderboard:
+  - GamificationController returns all users sorted by totalPoints.
+
+QUIZZES
+- Entry points:
+  - POST /api/quiz/generate/{conversationId} to generate a quiz.
+  - GET /api/quiz/{quizId} and /questions to fetch quiz data.
+  - POST /api/quiz/{quizId}/submit to submit answers.
+  - GET /api/quiz/conversation/{conversationId} and /user/{userId}/attempts for lookups.
+- Generation flow (QuizService.generateQuizFromConversation):
+  1) Prevent duplicate generation with a processing set.
+  2) Load Conversation and its ChatMessage list.
+  3) Build a context string from user messages.
+  4) Use LlmRouterService to generate JSON quiz questions; parse and validate.
+  5) If LLM fails, fall back to a default question based on the conversation topic.
+  6) Persist Quiz and QuizQuestion rows in order.
+- Submission flow (QuizService.submitQuizAttempt):
+  - Compare submitted answers with correct answers and compute score.
+  - Award 10 points per correct answer and store QuizAttempt.
+  - Update user points and check achievements.
+
+TASKS AND MEETINGS (GOOGLE TASKS + CALENDAR)
+- OAuth and credentials (GoogleAuthService):
+  - Uses Google OAuth installed-app flow with a local server receiver.
+  - Stores tokens under the local tokens/ directory and tracks scopes in tokens/scopes.txt.
+  - Scopes include Gmail, Tasks, and Calendar read access.
+- Google Tasks integration (GoogleTasksService):
+  - Lists task lists and tasks, including completed tasks.
+  - Counts completed tasks since a given timestamp for activity sync.
+  - Can patch a task as completed when a user marks it complete.
+- Google Calendar integration (GoogleCalendarService):
+  - Lists calendars and upcoming events.
+  - Counts completed meetings by checking event end time between the last sync time and now.
+- Activity sync (ActivitySyncService):
+  - Reads user.lastActivitySyncAt and counts completed tasks/meetings since then.
+  - Updates user task/meeting counters and awards points.
+- Manual completion (ActivityCompletionService):
+  - Records task/meeting completion in CompletedTask/CompletedMeeting.
+  - Prevents duplicate completion and awards points.
+  - Optionally marks Google Tasks as completed when taskListId is provided.
+
+EMAILS AND WORK-ITEM EXTRACTION
+- Gmail ingestion (GmailService):
+  - Fetches recent emails and stores EmailEntity with subject, sender, body, receivedAt.
+  - Strips HTML/CSS and normalizes text for storage.
+  - Provides summarizeEmail using GeminiService with a strict JSON response format and fallback when parsing fails.
+- Email extraction (EmailExtractionService):
+  - Creates an ExtractionJob and runs async extraction for the latest emails.
+  - Sends a JSON-only prompt to Ollama to extract tasks and meetings.
+  - Parses JSON into TaskEntity and MeetingEntity and de-duplicates by sourceEmailId.
+  - Exposes endpoints to start extraction and read extracted items.
+
+SKILL MAPPING
+- SkillMappingService builds a skill map from recent chat activity.
+- Supports two modes:
+  - Rule-based mapping using a keyword catalog.
+  - LLM-based mapping using LlmRouterService with JSON output; cached per user.
+- Endpoint: GET /api/skills/map?userId=...&refresh=true|false.
+
+FRONTEND INTEGRATION (frontend2)
+- API clients in frontend2/src/services/api.js map the backend endpoints.
+- Key pages:
+  - ChatPage: streaming chat, ending conversations, and quiz generation.
+  - QuizPage: renders questions and submits answers.
+  - TasksMeetings: fetches Google Tasks/Calendar items and marks completion for points.
+  - Dashboard: summary of points, level, tasks, meetings, and leaderboard.
+  - Achievements and Leaderboard pages for gamification display.
+
+CONFIGURATION NOTES
+- LLM provider selection is controlled by llm.provider (default: ollama).
+- Ollama settings (base URL, model, timeout) are configured in application.properties.
+
+END OF FILE
