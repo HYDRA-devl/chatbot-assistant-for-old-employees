@@ -248,3 +248,5 @@ credentials/
 
 # Diagnostic reports
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+src/main/resources/credentials.json
+tokens/
